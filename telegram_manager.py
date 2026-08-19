@@ -255,6 +255,66 @@ class TelegramHuntGroupManager:
         self.active_alert: Optional[Dict[str, any]] = None
         self.alert_history: List[Dict[str, any]] = []
 
+        # Start automatic background polling for Telegram pairing updates
+        self.start_polling()
+
+    def _poll_updates_loop(self) -> None:
+        """Background daemon worker polling Telegram getUpdates API for /start <token> messages."""
+        if self.mock_mode or not self.bot_token:
+            return
+        last_update_id = 0
+        while True:
+            try:
+                url = f"https://api.telegram.org/bot{self.bot_token}/getUpdates"
+                params = {"timeout": 5}
+                if last_update_id > 0:
+                    params["offset"] = last_update_id + 1
+                res = requests.get(url, params=params, timeout=10)
+                data = res.json()
+                if data.get("ok"):
+                    for u in data.get("result", []):
+                        up_id = u.get("update_id", 0)
+                        last_update_id = max(last_update_id, up_id)
+
+                        # Check /start <token>
+                        msg = u.get("message", {})
+                        text = msg.get("text", "")
+                        if text.startswith("/start "):
+                            parts = text.split(" ", 1)
+                            if len(parts) == 2:
+                                pairing_token = parts[1].strip()
+                                chat_id = str(msg.get("chat", {}).get("id", ""))
+                                from_user = msg.get("from", {})
+                                tg_username = from_user.get("username") or from_user.get("first_name", "User")
+
+                                import asyncio
+                                import database as db
+                                contact = asyncio.run(db.verify_contact_by_token(
+                                    pairing_token=pairing_token,
+                                    telegram_chat_id=chat_id,
+                                    telegram_username=tg_username,
+                                ))
+                                if contact:
+                                    confirm_text = f"✅ You've been paired as an emergency contact for **Echo**!\n\nContact name: **{contact['contact_name']}**\n\nYou will receive emergency audio alerts if a hazard is detected."
+                                    try:
+                                        requests.post(
+                                            f"https://api.telegram.org/bot{self.bot_token}/sendMessage",
+                                            json={"chat_id": chat_id, "text": confirm_text, "parse_mode": "Markdown"},
+                                            timeout=5,
+                                        )
+                                    except Exception:
+                                        pass
+                                    logger.info(f"[POLLING] Successfully paired Telegram contact: {contact['contact_name']} -> chat_id={chat_id}")
+            except Exception as e:
+                logger.debug(f"Error in polling updates loop: {e}")
+            time.sleep(3.0)
+
+    def start_polling(self) -> None:
+        if not self.mock_mode and self.bot_token:
+            t = threading.Thread(target=self._poll_updates_loop, name="TelegramPollingWorker", daemon=True)
+            t.start()
+            logger.info("Telegram background polling worker started.")
+
     def _notify_update(self) -> None:
         if self.on_status_update and callable(self.on_status_update):
             try:
@@ -325,6 +385,14 @@ class TelegramHuntGroupManager:
         wav_path = export_audio_buffer_to_wav(audio_samples=audio_samples)
 
         # Determine target chats
+        if not target_chats:
+            try:
+                import asyncio
+                import database as db
+                target_chats = asyncio.run(db.get_active_target_chats())
+            except Exception:
+                pass
+
         chats_to_send = target_chats or self.chat_ids
         if not chats_to_send:
             chats_to_send = self.chat_ids

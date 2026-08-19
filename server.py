@@ -296,7 +296,7 @@ async def update_location(request: Request, body: LocationUpdateRequest):
 
 # ── Emergency Contact Endpoints ─────────────────────────────────────────────────
 
-TELEGRAM_BOT_USERNAME = "my_hunt_group_bot"  # Must match your bot's @username
+TELEGRAM_BOT_USERNAME = os.getenv("TELEGRAM_BOT_USERNAME", "my_hunt_group_bot")
 
 @app.get("/api/contacts")
 async def list_contacts(user: dict = Depends(get_current_user)):
@@ -412,15 +412,10 @@ async def trigger_alert(hazard: str = "Fire alarm", tier: str = "CRITICAL"):
 async def trigger_telegram_endpoint(hazard: str = "Fire alarm", location: Optional[str] = None):
     agent = ENGINE_STATE.get("agent")
     if agent and hasattr(agent, "dispatch_telegram_alert"):
-        # Fetch verified emergency contacts from database
-        verified_contacts = await db.get_all_verified_contacts()
-        verified_chats = [c["telegram_chat_id"] for c in verified_contacts if c.get("telegram_chat_id")]
+        # Dynamically fetch target chats (prioritizing DB verified contacts over static .env)
+        target_chats = await db.get_active_target_chats()
         
-        # Combine with environment configured chat IDs
-        env_chats = [cid.strip() for cid in os.getenv("TELEGRAM_CHAT_IDS", "").split(",") if cid.strip()]
-        all_chats = list(dict.fromkeys(verified_chats + env_chats))
-        
-        res = agent.dispatch_telegram_alert(hazard_type=hazard, location=location, target_chats=all_chats if all_chats else None)
+        res = agent.dispatch_telegram_alert(hazard_type=hazard, location=location, target_chats=target_chats)
         return JSONResponse({"status": "telegram_dispatched", "alert_record": res})
     return JSONResponse({"status": "error", "message": "Agent telegram manager not initialized"}, status_code=500)
 
@@ -504,6 +499,11 @@ async def telegram_webhook(request: Request):
                 bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
 
                 if contact:
+                    await manager.broadcast({
+                        "event": "CONTACT_VERIFIED",
+                        "contact_id": contact["id"],
+                        "contact_name": contact["contact_name"],
+                    })
                     confirm_text = f"✅ You've been paired as an emergency contact for **Echo**!\n\nContact name: **{contact['contact_name']}**\n\nYou will receive emergency audio alerts if a hazard is detected."
                     status_msg = "paired"
                 else:

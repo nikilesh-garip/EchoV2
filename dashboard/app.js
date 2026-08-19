@@ -72,6 +72,9 @@ function connectWebSocket() {
   ws.onmessage = (event) => {
     try {
       latestPacket = JSON.parse(event.data);
+      if (latestPacket.event === 'CONTACT_VERIFIED') {
+        loadContacts();
+      }
       handleTelemetryPacket(latestPacket);
     } catch (e) { /* ignore parse errors */ }
   };

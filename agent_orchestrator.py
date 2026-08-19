@@ -121,10 +121,20 @@ class AntigravitySecurityAgent:
         audio_samples: Optional[np.ndarray] = None,
         location: Optional[str] = None,
         target_chats: Optional[List[str]] = None,
+        user_id: Optional[int] = None,
     ) -> Dict[str, any]:
         """
         Tool: Broadcast emergency AI voice briefing, audio clip, and Google Maps live location to Telegram contacts.
         """
+        if not target_chats:
+            try:
+                import asyncio
+                import database as db
+                target_chats = asyncio.run(db.get_active_target_chats(user_id=user_id))
+            except Exception as e:
+                logger.error(f"Failed to fetch active target chats from database: {e}")
+                target_chats = None
+
         samples = audio_samples if audio_samples is not None else self.latest_audio_samples
         return self.telegram_manager.broadcast_telegram_alert(
             hazard_type=hazard_type,
@@ -132,6 +142,7 @@ class AntigravitySecurityAgent:
             location=location,
             target_chats=target_chats,
         )
+
 
     def dispatch_hazard_event(
         self,
@@ -302,7 +313,7 @@ class AntigravitySecurityAgent:
                     "class_name": class_name,
                     "confidence": confidence,
                     "action": "TELEGRAM_ALERT_DISPATCHED",
-                    "details": f"Operator timeout reached (10s). Broadcasted alert + audio to {len(self.telegram_manager.chat_ids)} Telegram contacts.",
+                    "details": f"Operator timeout reached (10s). Broadcasted alert + audio to {len(tg_result.get('messages', {}))} Telegram contacts.",
                     "alert_id": tg_result.get("alert_id"),
                     "popup_sent": True,
                 })
