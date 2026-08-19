@@ -349,6 +349,9 @@ async def remove_contact(contact_id: int, user: dict = Depends(get_current_user)
 async def toggle_mic(user: dict = Depends(get_current_user)):
     ENGINE_STATE["mic_enabled"] = not ENGINE_STATE["mic_enabled"]
     await db.update_user_settings(user_id=user["id"], mic_enabled=ENGINE_STATE["mic_enabled"])
+    agent = ENGINE_STATE.get("agent")
+    if not ENGINE_STATE["mic_enabled"] and agent:
+        agent.cancel_alert(reason="System Paused by User")
     return JSONResponse({"mic_enabled": ENGINE_STATE["mic_enabled"]})
 
 

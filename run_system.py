@@ -83,9 +83,9 @@ def audio_ai_pipeline_worker(
             try:
                 # 0. Check mic toggle — if paused, emit silence telemetry
                 if not ENGINE_STATE.get("mic_enabled", True):
+                    if agent and agent.active_countdown:
+                        agent.cancel_alert(reason="System Paused by User")
                     time.sleep(0.975)  # Match chunk cadence
-                    chunk_idx += 1
-                    ENGINE_STATE["total_chunks"] = chunk_idx
                     silence_packet = {
                         "chunk_index": chunk_idx,
                         "timestamp": time.strftime("%H:%M:%S"),
@@ -93,7 +93,13 @@ def audio_ai_pipeline_worker(
                         "mic_rms": 0.0, "spk_rms": 0.0, "mic_dbfs": -96.0, "spk_dbfs": -96.0,
                         "mic_device_name": "Paused", "speaker_name": "Paused",
                         "top_prediction": {"class_name": "Paused", "confidence": 0.0},
-                        "target_scores": {}, "firewall": {"cross_correlation": 0.0, "is_suppressed": False, "suppressed_total": 0, "confirmed_total": 0},
+                        "target_scores": {},
+                        "firewall": {
+                            "cross_correlation": 0.0,
+                            "is_suppressed": False,
+                            "suppressed_total": getattr(firewall, "suppressed_count", 0),
+                            "confirmed_total": getattr(firewall, "confirmed_hazard_count", 0),
+                        },
                         "temporal_buffer": [], "gate_qualifying_count": 0,
                         "alert_state": "PAUSED", "active_hazard": None,
                         "agent_state": agent.get_agent_state() if agent else {},
