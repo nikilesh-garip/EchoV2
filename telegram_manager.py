@@ -395,17 +395,26 @@ class TelegramHuntGroupManager:
         wav_path = export_audio_buffer_to_wav(audio_samples=audio_samples)
 
         # Determine target chats
-        if not target_chats:
+        if target_chats is None:
             try:
                 import asyncio
                 import database as db
                 target_chats = asyncio.run(db.get_active_target_chats(user_id=user_id))
             except Exception:
-                pass
+                target_chats = []
 
-        chats_to_send = target_chats or self.chat_ids
+        chats_to_send = target_chats if target_chats is not None else []
         if not chats_to_send:
-            chats_to_send = self.chat_ids
+            logger.warning(
+                f"📱 [TELEGRAM DISPATCH SKIPPED] Zero active emergency contacts found for user '{user_name}' (user_id={user_id}). "
+                f"No notification will be sent."
+            )
+            return {
+                "alert_id": alert_id,
+                "status": "SKIPPED_NO_CONTACTS",
+                "messages": {},
+                "recipient_count": 0,
+            }
 
         # Formatted Location Text Message with Inline Acknowledgment Button & Dynamic Person in Danger
         message_text = (

@@ -300,27 +300,29 @@ async def get_verified_contacts_for_user(user_id: int) -> List[Dict[str, Any]]:
 async def get_active_target_chats(user_id: Optional[int] = None) -> List[str]:
     """
     Get target Telegram chat IDs for emergency dispatch.
-    Prioritizes verified contacts in the database for the given user (or all users).
-    Only falls back to TELEGRAM_CHAT_IDS from .env if no verified contacts exist in the DB.
+    Returns verified contacts in the database for the given user.
+    If user_id is provided, strictly returns that user's verified contacts (even if empty).
     """
     if user_id is not None:
         contacts = await get_verified_contacts_for_user(user_id)
-    else:
-        contacts = await get_all_verified_contacts()
+        db_chats = [
+            str(c["telegram_chat_id"]).strip()
+            for c in contacts
+            if c.get("telegram_chat_id") and str(c["telegram_chat_id"]).strip()
+        ]
+        return list(dict.fromkeys(db_chats))
 
+    contacts = await get_all_verified_contacts()
     db_chats = [
         str(c["telegram_chat_id"]).strip()
         for c in contacts
         if c.get("telegram_chat_id") and str(c["telegram_chat_id"]).strip()
     ]
     if db_chats:
-        # Return unique DB verified contacts
         return list(dict.fromkeys(db_chats))
 
-    # Fallback to .env only if zero verified contacts exist in DB
     env_chats_str = os.getenv("TELEGRAM_CHAT_IDS", "")
-    env_chats = [cid.strip() for cid in env_chats_str.split(",") if cid.strip()]
-    return env_chats
+    return [cid.strip() for cid in env_chats_str.split(",") if cid.strip()]
 
 
 async def verify_contact_by_token(pairing_token: str, telegram_chat_id: str, telegram_username: str = None) -> Optional[Dict[str, Any]]:
