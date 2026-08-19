@@ -122,6 +122,7 @@ class AntigravitySecurityAgent:
         location: Optional[str] = None,
         target_chats: Optional[List[str]] = None,
         user_id: Optional[int] = None,
+        user_name: Optional[str] = None,
     ) -> Dict[str, any]:
         """
         Tool: Broadcast emergency AI voice briefing, audio clip, and Google Maps live location to Telegram contacts.
@@ -140,6 +141,8 @@ class AntigravitySecurityAgent:
             hazard_type=hazard_type,
             audio_samples=samples,
             location=location,
+            user_name=user_name,
+            user_id=user_id,
             target_chats=target_chats,
         )
 

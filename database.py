@@ -116,6 +116,23 @@ async def get_user_by_id(user_id: int) -> Optional[Dict[str, Any]]:
         await db.close()
 
 
+async def get_user_display_name(user_id: Optional[int] = None) -> str:
+    """Fetch user display_name or username for dynamic emergency message personalization."""
+    db = await get_db()
+    try:
+        if user_id is not None:
+            cursor = await db.execute("SELECT display_name, username FROM users WHERE id = ?", (user_id,))
+        else:
+            cursor = await db.execute("SELECT display_name, username FROM users ORDER BY id ASC LIMIT 1")
+        row = await cursor.fetchone()
+        if row:
+            d = dict(row)
+            return d.get("display_name") or d.get("username") or "User"
+        return "User"
+    finally:
+        await db.close()
+
+
 async def update_user_profile(user_id: int, display_name: str = None, email: str = None, location: str = None) -> bool:
     db = await get_db()
     try:

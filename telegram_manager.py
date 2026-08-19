@@ -356,7 +356,8 @@ class TelegramHuntGroupManager:
         hazard_type: str,
         audio_samples: Optional[np.ndarray] = None,
         location: Optional[str] = None,
-        user_name: str = "Nikhilesh",
+        user_name: Optional[str] = None,
+        user_id: Optional[int] = None,
         target_chats: Optional[List[str]] = None,
     ) -> Dict[str, any]:
         """
@@ -368,6 +369,15 @@ class TelegramHuntGroupManager:
         """
         alert_id = f"alert_{int(time.time())}"
         timestamp_str = time.strftime("%H:%M:%S")
+
+        # Resolve dynamic user name if not provided
+        if not user_name:
+            try:
+                import asyncio
+                import database as db
+                user_name = asyncio.run(db.get_user_display_name(user_id=user_id))
+            except Exception:
+                user_name = "User"
 
         # 1. Resolve Live Location & Google Maps URL
         loc_info = resolve_live_location()
@@ -389,7 +399,7 @@ class TelegramHuntGroupManager:
             try:
                 import asyncio
                 import database as db
-                target_chats = asyncio.run(db.get_active_target_chats())
+                target_chats = asyncio.run(db.get_active_target_chats(user_id=user_id))
             except Exception:
                 pass
 
@@ -397,9 +407,11 @@ class TelegramHuntGroupManager:
         if not chats_to_send:
             chats_to_send = self.chat_ids
 
-        # Formatted Location Text Message with Inline Acknowledgment Button
+        # Formatted Location Text Message with Inline Acknowledgment Button & Dynamic Person in Danger
         message_text = (
-            f"🚨 <b>CRITICAL HAZARD: {hazard_type.upper()}</b>\n"
+            f"🚨 <b>EMERGENCY ALERT FOR {user_name.upper()}</b>\n\n"
+            f"👤 <b>Person in Danger:</b> {user_name}\n"
+            f"⚠️ <b>Hazard Detected:</b> {hazard_type.upper()}\n"
             f"🕒 <b>Time:</b> {timestamp_str}\n"
             f"📍 <b>Live Location:</b> <a href=\"{maps_url}\">{maps_url}</a>"
         )
@@ -452,7 +464,7 @@ class TelegramHuntGroupManager:
                         with open(mp3_path, "rb") as voice_file:
                             res_v = requests.post(
                                 voice_url,
-                                data={"chat_id": chat_id, "caption": f"🎙️ AI Voice Briefing — {hazard_type}"},
+                                data={"chat_id": chat_id, "caption": f"🎙️ AI Voice Briefing — Emergency for {user_name} ({hazard_type})"},
                                 files={"voice": (os.path.basename(mp3_path), voice_file, "audio/mpeg")},
                                 timeout=10,
                             )
@@ -469,7 +481,7 @@ class TelegramHuntGroupManager:
                         with open(wav_path, "rb") as audio_file:
                             res_a = requests.post(
                                 audio_url,
-                                data={"chat_id": chat_id, "caption": f"🔊 5-second acoustic evidence snippet"},
+                                data={"chat_id": chat_id, "caption": f"🔊 5-second acoustic evidence snippet ({user_name} - {hazard_type})"},
                                 files={"audio": (os.path.basename(wav_path), audio_file, "audio/wav")},
                                 timeout=10,
                             )

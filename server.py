@@ -412,14 +412,25 @@ async def trigger_alert(hazard: str = "Fire alarm", tier: str = "CRITICAL"):
 
 
 @app.post("/api/trigger-telegram")
-async def trigger_telegram_endpoint(hazard: str = "Fire alarm", location: Optional[str] = None):
+async def trigger_telegram_endpoint(
+    hazard: str = "Fire alarm",
+    location: Optional[str] = None,
+    user: dict = Depends(get_current_user),
+):
     agent = ENGINE_STATE.get("agent")
     if agent and hasattr(agent, "dispatch_telegram_alert"):
-        # Dynamically fetch target chats (prioritizing DB verified contacts over static .env)
-        target_chats = await db.get_active_target_chats()
+        user_id = user["id"]
+        user_name = user.get("display_name") or user.get("username", "User")
+        target_chats = await db.get_active_target_chats(user_id=user_id)
         
-        res = agent.dispatch_telegram_alert(hazard_type=hazard, location=location, target_chats=target_chats)
-        return JSONResponse({"status": "telegram_dispatched", "alert_record": res})
+        res = agent.dispatch_telegram_alert(
+            hazard_type=hazard,
+            location=location,
+            target_chats=target_chats,
+            user_id=user_id,
+            user_name=user_name,
+        )
+        return JSONResponse({"status": "telegram_dispatched", "alert_record": res, "dispatched_for_user": user_name})
     return JSONResponse({"status": "error", "message": "Agent telegram manager not initialized"}, status_code=500)
 
 
