@@ -105,9 +105,9 @@ function handleTelemetryPacket(p) {
   if (waveformData.length > waveformMaxPoints) waveformData.shift();
 
   // Sync mic toggle UI state
-  if (typeof p.mic_enabled === 'boolean') {
-    const cb = el('micCheckbox');
-    const lbl = el('micLabel');
+  if (!isMicToggling && typeof p.mic_enabled === 'boolean') {
+    const cb = document.getElementById('micCheckbox');
+    const lbl = document.getElementById('micLabel');
     if (cb) cb.checked = p.mic_enabled;
     if (lbl) lbl.textContent = p.mic_enabled ? 'Listening' : 'Paused';
   }
@@ -556,20 +556,36 @@ function hidePairingModal() {
   document.getElementById('pairingLinkModal').style.display = 'none';
 }
 
-// ── Mic Toggle ─────────────────────────────────────────────────────────────────
+let isMicToggling = false;
 
 async function toggleMic(e) {
-  if (e && e.target && e.target.id === 'micToggle') {
-    return; // Prevent double firing from label container
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
   }
+  if (isMicToggling) return;
+  isMicToggling = true;
+
   try {
     const res = await fetch('/api/system/toggle-mic', { method: 'POST', headers: authHeaders() });
     const data = await res.json();
+    const isEnabled = Boolean(data.mic_enabled);
+    
     const label = document.getElementById('micLabel');
     const checkbox = document.getElementById('micCheckbox');
-    if (label) label.textContent = data.mic_enabled ? 'Listening' : 'Paused';
-    if (checkbox) checkbox.checked = data.mic_enabled;
-  } catch (err) { /* ignore */ }
+    const wrapper = document.getElementById('micToggleWrapper');
+
+    if (checkbox) checkbox.checked = isEnabled;
+    if (label) label.textContent = isEnabled ? 'Listening' : 'Paused';
+    if (wrapper) {
+      if (isEnabled) wrapper.classList.remove('paused');
+      else wrapper.classList.add('paused');
+    }
+  } catch (err) {
+    console.error('Failed to toggle mic:', err);
+  } finally {
+    setTimeout(() => { isMicToggling = false; }, 1200);
+  }
 }
 
 // ── Event Listeners ────────────────────────────────────────────────────────────
@@ -593,10 +609,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // Avatar -> profile
   document.getElementById('btnUserAvatar').addEventListener('click', () => switchView('profile'));
 
-  // Mic toggle on checkbox change
-  const micCheckbox = document.getElementById('micCheckbox');
-  if (micCheckbox) {
-    micCheckbox.addEventListener('change', toggleMic);
+  // Mic toggle on wrapper click
+  const micWrapper = document.getElementById('micToggleWrapper');
+  if (micWrapper) {
+    micWrapper.addEventListener('click', toggleMic);
   }
 
   // Profile save
