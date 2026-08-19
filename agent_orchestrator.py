@@ -136,7 +136,12 @@ class AntigravitySecurityAgent:
                 logger.error(f"Failed to fetch active target chats from database: {e}")
                 target_chats = None
 
-        samples = audio_samples if audio_samples is not None else self.latest_audio_samples
+        if audio_samples is not None:
+            samples = audio_samples
+        elif hasattr(self, "incident_audio_samples") and self.incident_audio_samples is not None:
+            samples = self.incident_audio_samples
+        else:
+            samples = self.latest_audio_samples
         return self.telegram_manager.broadcast_telegram_alert(
             hazard_type=hazard_type,
             audio_samples=samples,
@@ -254,6 +259,12 @@ class AntigravitySecurityAgent:
         # Cancel any existing active countdown
         if self.countdown_timer_task:
             self.countdown_timer_task.cancel()
+
+        # Freeze the exact audio window containing the hazard snippet for emergency evidence dispatch
+        if self.latest_audio_samples is not None:
+            self.incident_audio_samples = self.latest_audio_samples.copy()
+        else:
+            self.incident_audio_samples = None
 
         # Initialize Human-in-the-Loop countdown state
         start_time = time.time()

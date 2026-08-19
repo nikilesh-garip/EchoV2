@@ -229,7 +229,7 @@ def audio_ai_pipeline_worker(
                             "class_name": item.get("top_class", "-"),
                             "confidence": float(item.get("top_score", 0.0)),
                             "is_target": any(
-                                item.get("target_scores", {}).get(k, 0.0) >= 0.40
+                                item.get("target_scores", {}).get(k, 0.0) >= confidence_thresh
                                 for k in WARNING_SOUNDS + CRITICAL_SOUNDS
                             ),
                             "is_suppressed": item.get("is_suppressed", False),

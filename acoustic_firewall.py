@@ -147,7 +147,7 @@ class AcousticFirewall:
         # If top class itself is in target classes even if individual threshold varied
         if not detected_target:
             for tier, target in all_targets:
-                if target.lower() in mic_top_class.lower() and mic_top_score >= 0.70:
+                if target.lower() in mic_top_class.lower() and mic_top_score >= CONFIDENCE_THRESHOLD:
                     detected_target = target
                     target_tier = tier
                     max_mic_hazard_score = mic_top_score

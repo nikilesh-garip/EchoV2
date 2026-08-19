@@ -135,6 +135,7 @@ class DualAudioIngestion:
         try:
             default_mic_info = self.pyaudio_instance.get_default_input_device_info()
             self.mic_device_index = default_mic_info.get("index")
+            self.mic_device_info = default_mic_info
             logger.info(
                 f"Default Microphone: [{self.mic_device_index}] {default_mic_info.get('name')}"
             )
@@ -150,9 +151,11 @@ class DualAudioIngestion:
             self.mic_device_index = candidate_index
             if self.mic_device_index is not None:
                 dev_info = self.pyaudio_instance.get_device_info_by_index(self.mic_device_index)
+                self.mic_device_info = dev_info
                 logger.info(f"Using candidate input device: [{self.mic_device_index}] {dev_info.get('name')}")
             else:
                 logger.warning("No physical microphone device found; running in simulated input mode for microphone channel.")
+                self.mic_device_info = {"name": "Simulated Microphone", "index": -1}
                 self.mic_is_fallback = True
 
         # 2. Initialize SoundCard for Speaker Loopback
@@ -321,6 +324,18 @@ class DualAudioIngestion:
             Tuple[np.ndarray, np.ndarray]: (mic_chunk, spk_chunk)
             Both chunks are 1D arrays of shape (15600,) with dtype float32 in [-1.0, 1.0].
         """
+        # Drain backlog if one queue drifted ahead due to OS thread scheduling
+        while self.mic_queue.qsize() > 3:
+            try:
+                _ = self.mic_queue.get_nowait()
+            except queue.Empty:
+                break
+        while self.spk_queue.qsize() > 3:
+            try:
+                _ = self.spk_queue.get_nowait()
+            except queue.Empty:
+                break
+
         mic_chunk = self.mic_queue.get(block=True, timeout=timeout)
         spk_chunk = self.spk_queue.get(block=True, timeout=timeout)
 
