@@ -89,6 +89,7 @@ def audio_ai_pipeline_worker(
                     silence_packet = {
                         "chunk_index": chunk_idx,
                         "timestamp": time.strftime("%H:%M:%S"),
+                        "mic_enabled": False,
                         "mic_rms": 0.0, "spk_rms": 0.0, "mic_dbfs": -96.0, "spk_dbfs": -96.0,
                         "mic_device_name": "Paused", "speaker_name": "Paused",
                         "top_prediction": {"class_name": "Paused", "confidence": 0.0},
@@ -202,6 +203,7 @@ def audio_ai_pipeline_worker(
                 packet = {
                     "chunk_index": chunk_idx,
                     "timestamp": time.strftime("%H:%M:%S"),
+                    "mic_enabled": True,
                     "mic_rms": float(mic_rms),
                     "spk_rms": float(spk_rms),
                     "mic_dbfs": float(mic_db),

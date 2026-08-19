@@ -104,6 +104,14 @@ function handleTelemetryPacket(p) {
   waveformData.push(p.mic_rms || 0);
   if (waveformData.length > waveformMaxPoints) waveformData.shift();
 
+  // Sync mic toggle UI state
+  if (typeof p.mic_enabled === 'boolean') {
+    const cb = el('micCheckbox');
+    const lbl = el('micLabel');
+    if (cb) cb.checked = p.mic_enabled;
+    if (lbl) lbl.textContent = p.mic_enabled ? 'Listening' : 'Paused';
+  }
+
   // Home view stats
   const el = (id) => document.getElementById(id);
   if (el('homeMicRms')) el('homeMicRms').textContent = (p.mic_rms || 0).toFixed(4);
@@ -550,24 +558,18 @@ function hidePairingModal() {
 
 // ── Mic Toggle ─────────────────────────────────────────────────────────────────
 
-async function toggleMic() {
+async function toggleMic(e) {
+  if (e && e.target && e.target.id === 'micToggle') {
+    return; // Prevent double firing from label container
+  }
   try {
     const res = await fetch('/api/system/toggle-mic', { method: 'POST', headers: authHeaders() });
     const data = await res.json();
     const label = document.getElementById('micLabel');
     const checkbox = document.getElementById('micCheckbox');
-    if (data.mic_enabled) {
-      label.textContent = 'Listening';
-      checkbox.checked = true;
-      document.getElementById('homeStatusText').textContent = 'active';
-      document.getElementById('homeStatusText').className = 'status-active';
-    } else {
-      label.textContent = 'Paused';
-      checkbox.checked = false;
-      document.getElementById('homeStatusText').textContent = 'paused';
-      document.getElementById('homeStatusText').style.color = '#e74c3c';
-    }
-  } catch (e) { /* ignore */ }
+    if (label) label.textContent = data.mic_enabled ? 'Listening' : 'Paused';
+    if (checkbox) checkbox.checked = data.mic_enabled;
+  } catch (err) { /* ignore */ }
 }
 
 // ── Event Listeners ────────────────────────────────────────────────────────────
@@ -591,8 +593,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Avatar -> profile
   document.getElementById('btnUserAvatar').addEventListener('click', () => switchView('profile'));
 
-  // Mic toggle
-  document.getElementById('micToggle').addEventListener('click', toggleMic);
+  // Mic toggle on checkbox change
+  const micCheckbox = document.getElementById('micCheckbox');
+  if (micCheckbox) {
+    micCheckbox.addEventListener('change', toggleMic);
+  }
 
   // Profile save
   document.getElementById('btnSaveProfile').addEventListener('click', saveProfile);
