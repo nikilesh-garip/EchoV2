@@ -1,0 +1,25 @@
+# Python / Virtual Environment
+.venv/
+venv/
+env/
+ENV/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment & Sensitive Data
+.env
+*.env
+
+# SQLite Database / Local Data
+*.db
+*.sqlite
+*.sqlite3
+echo.db
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

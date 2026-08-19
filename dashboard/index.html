@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Echo — Dashboard</title>
+  <meta name="description" content="Echo real-time acoustic hazard detection dashboard with interactive audio visualization.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="app-header" id="appHeader">
+    <div class="header-left">
+      <div class="echo-logo-sm">echo<span class="dot"></span></div>
+    </div>
+
+    <div class="header-center">
+      <div class="status-pill" id="connectionPill">
+        <span class="pulse-dot" id="pulseDot"></span>
+        <span id="connectionStatus">Connecting...</span>
+      </div>
+      <div class="uptime-badge">
+        <span>⏱</span>
+        <span id="systemUptime">00:00:00</span>
+      </div>
+      <div class="location-badge" id="locationBadge">
+        <span>📍</span>
+        <span id="locationStatusText">Detecting GPS...</span>
+        <button class="btn-detect-gps" id="btnDetectGps" title="Click to detect exact device GPS">📡 Sync GPS</button>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <!-- Master Mic Toggle -->
+      <div class="mic-toggle-wrapper" id="micToggleWrapper">
+        <span class="mic-label" id="micLabel">Listening</span>
+        <label class="clay-toggle" id="micToggle">
+          <input type="checkbox" id="micCheckbox" checked>
+          <span class="toggle-track">
+            <span class="toggle-knob"></span>
+          </span>
+        </label>
+      </div>
+      <button class="btn-avatar" id="btnUserAvatar" title="Profile">
+        <span id="avatarInitial">U</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Layout: Sidebar + Content -->
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-nav">
+        <button class="nav-item active" data-view="home" id="navHome">
+          <span class="nav-icon">🏠</span>
+          <span class="nav-text">Home</span>
+        </button>
+        <button class="nav-item" data-view="meter" id="navMeter">
+          <span class="nav-icon">📊</span>
+          <span class="nav-text">Audio Meter</span>
+        </button>
+        <button class="nav-item" data-view="profile" id="navProfile">
+          <span class="nav-icon">👤</span>
+          <span class="nav-text">Profile</span>
+        </button>
+        <button class="nav-item" data-view="contacts" id="navContacts">
+          <span class="nav-icon">📱</span>
+          <span class="nav-text">Contacts</span>
+        </button>
+        <button class="nav-item" data-view="integrations" id="navIntegrations">
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-text">Integrations</span>
+        </button>
+      </div>
+      <div class="sidebar-footer">
+        <button class="nav-item nav-logout" id="btnLogout">
+          <span class="nav-icon">🚪</span>
+          <span class="nav-text">Sign Out</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Content Views -->
+    <main class="content-area" id="contentArea">
+
+      <!-- HOME VIEW -->
+      <section class="view active" id="viewHome">
+        <div class="view-header">
+          <h2>Welcome back, <span id="homeUserName">User</span></h2>
+          <p class="view-subtitle">Real-time acoustic monitoring is <span id="homeStatusText" class="status-active">active</span></p>
+        </div>
+
+        <!-- Audio Waveform Canvas -->
+        <div class="clay-card waveform-card">
+          <canvas id="waveformCanvas"></canvas>
+          <div class="waveform-overlay">
+            <div class="waveform-stat">
+              <span class="stat-label">MIC RMS</span>
+              <span class="stat-value" id="homeMicRms">0.000</span>
+            </div>
+            <div class="waveform-stat">
+              <span class="stat-label">CLASSIFICATION</span>
+              <span class="stat-value" id="homeTopClass">Silence</span>
+            </div>
+            <div class="waveform-stat">
+              <span class="stat-label">CONFIDENCE</span>
+              <span class="stat-value" id="homeConfidence">0%</span>
+            </div>
+            <div class="waveform-stat">
+              <span class="stat-label">ALERT STATE</span>
+              <span class="stat-value" id="homeAlertState">NORMAL</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Stats Row -->
+        <div class="stats-row">
+          <div class="clay-card stat-card">
+            <div class="stat-icon">🔊</div>
+            <div class="stat-info">
+              <span class="stat-number" id="homeChunks">0</span>
+              <span class="stat-desc">Chunks Processed</span>
+            </div>
+          </div>
+          <div class="clay-card stat-card">
+            <div class="stat-icon">🛡️</div>
+            <div class="stat-info">
+              <span class="stat-number" id="homeSuppressed">0</span>
+              <span class="stat-desc">Media Suppressed</span>
+            </div>
+          </div>
+          <div class="clay-card stat-card">
+            <div class="stat-icon">⚠️</div>
+            <div class="stat-info">
+              <span class="stat-number" id="homeThreats">0</span>
+              <span class="stat-desc">Threats Confirmed</span>
+            </div>
+          </div>
+          <div class="clay-card stat-card">
+            <div class="stat-icon">📱</div>
+            <div class="stat-info">
+              <span class="stat-number" id="homeContacts">0</span>
+              <span class="stat-desc">Active Contacts</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hazard Alert Banner (appears when active) -->
+        <div class="clay-card hazard-banner-card" id="homeHazardBanner" style="display:none;">
+          <div class="hazard-indicator"></div>
+          <div class="hazard-info">
+            <strong id="hazardTitle">CRITICAL HAZARD</strong>
+            <span id="hazardDetail">Fire alarm detected — 96% confidence</span>
+          </div>
+          <button class="btn-clay btn-cancel-alert" id="btnCancelAlert">Cancel Alert</button>
+        </div>
+
+        <!-- Temporal Buffer Slots -->
+        <div class="clay-card buffer-card">
+          <div class="card-title-row">
+            <h3>Temporal Validation Buffer</h3>
+            <span class="buffer-gate-badge" id="homeGateBadge">Gate: CLEAR</span>
+          </div>
+          <div class="buffer-slots" id="homeBufferSlots">
+            <div class="buffer-slot empty">1</div>
+            <div class="buffer-slot empty">2</div>
+            <div class="buffer-slot empty">3</div>
+            <div class="buffer-slot empty">4</div>
+            <div class="buffer-slot empty">5</div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="actions-row">
+          <button class="btn-clay btn-action" id="btnTestHazard">
+            <span>🔥</span> Inject Test Hazard
+          </button>
+          <button class="btn-clay btn-action" id="btnTestMedia">
+            <span>🔇</span> Test Media Suppression
+          </button>
+          <button class="btn-clay btn-action btn-telegram" id="btnTestTelegram">
+            <span>📱</span> Trigger Telegram Alert
+          </button>
+        </div>
+      </section>
+
+      <!-- AUDIO METER VIEW -->
+      <section class="view" id="viewMeter">
+        <div class="view-header">
+          <h2>Audio Meter</h2>
+          <p class="view-subtitle">Full-screen interactive audio visualization</p>
+        </div>
+        <div class="clay-card meter-fullscreen-card">
+          <canvas id="meterCanvas"></canvas>
+        </div>
+        <div class="meter-stats-bar">
+          <div class="meter-stat">
+            <span class="stat-label">MIC dBFS</span>
+            <span class="stat-value" id="meterDbfs">-∞</span>
+          </div>
+          <div class="meter-stat">
+            <span class="stat-label">SPK RMS</span>
+            <span class="stat-value" id="meterSpkRms">0.000</span>
+          </div>
+          <div class="meter-stat">
+            <span class="stat-label">CROSS CORR</span>
+            <span class="stat-value" id="meterXCorr">0.00</span>
+          </div>
+          <div class="meter-stat">
+            <span class="stat-label">FIREWALL</span>
+            <span class="stat-value" id="meterFirewall">CLEAR</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- PROFILE VIEW -->
+      <section class="view" id="viewProfile">
+        <div class="view-header">
+          <h2>Profile & Settings</h2>
+          <p class="view-subtitle">Manage your account and preferences</p>
+        </div>
+
+        <div class="profile-grid">
+          <div class="clay-card profile-card">
+            <h3>Account Details</h3>
+            <div id="profileMessage" class="form-message"></div>
+            <div class="form-group">
+              <label class="form-label">Display Name</label>
+              <input class="clay-input" type="text" id="profileDisplayName" placeholder="Your name">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input class="clay-input" type="email" id="profileEmail" placeholder="your@email.com">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Location</label>
+              <input class="clay-input" type="text" id="profileLocation" placeholder="e.g. Facility Alpha - Sector 4">
+            </div>
+            <button class="btn-clay btn-save" id="btnSaveProfile">Save Changes</button>
+          </div>
+
+          <div class="clay-card profile-card">
+            <h3>Change Password</h3>
+            <div id="passwordMessage" class="form-message"></div>
+            <div class="form-group">
+              <label class="form-label">Current Password</label>
+              <input class="clay-input" type="password" id="profileOldPassword" placeholder="Current password">
+            </div>
+            <div class="form-group">
+              <label class="form-label">New Password</label>
+              <input class="clay-input" type="password" id="profileNewPassword" placeholder="New password (min 6 chars)">
+            </div>
+            <button class="btn-clay btn-save" id="btnChangePassword">Update Password</button>
+          </div>
+
+          <div class="clay-card profile-card">
+            <h3>Preferences</h3>
+            <div class="pref-row">
+              <span>Desktop Notifications</span>
+              <label class="clay-toggle sm">
+                <input type="checkbox" id="prefNotifications" checked>
+                <span class="toggle-track"><span class="toggle-knob"></span></span>
+              </label>
+            </div>
+            <div class="pref-row">
+              <span>Theme</span>
+              <span class="theme-label" id="prefThemeLabel">Light (Clay)</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- EMERGENCY CONTACTS VIEW -->
+      <section class="view" id="viewContacts">
+        <div class="view-header">
+          <h2>Emergency Contacts</h2>
+          <p class="view-subtitle">Manage Telegram-paired emergency contacts via deep-link pairing</p>
+        </div>
+
+        <div class="contacts-toolbar">
+          <button class="btn-clay btn-add-contact" id="btnAddContact">
+            <span>+</span> Add Contact
+          </button>
+        </div>
+
+        <div class="contacts-list" id="contactsList">
+          <div class="empty-state">
+            <div class="empty-icon">📱</div>
+            <p>No emergency contacts configured yet.</p>
+            <p class="empty-hint">Add a contact and share their unique Telegram pairing link.</p>
+          </div>
+        </div>
+
+        <!-- Add Contact Modal -->
+        <div class="modal-overlay" id="addContactModal" style="display:none;">
+          <div class="clay-card modal-card">
+            <h3>Add Emergency Contact</h3>
+            <p class="modal-desc">Enter a name for this contact. A unique Telegram pairing link will be generated.</p>
+            <div class="form-group">
+              <label class="form-label">Contact Name</label>
+              <input class="clay-input" type="text" id="newContactName" placeholder="e.g. Mom, Security Guard">
+            </div>
+            <div class="modal-actions">
+              <button class="btn-clay btn-modal-cancel" id="btnCancelModal">Cancel</button>
+              <button class="btn-clay btn-save" id="btnConfirmContact">Generate Pairing Link</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pairing Link Modal -->
+        <div class="modal-overlay" id="pairingLinkModal" style="display:none;">
+          <div class="clay-card modal-card">
+            <h3>📱 Share This Pairing Link</h3>
+            <p class="modal-desc">Send this link to <strong id="pairingContactName">Contact</strong>. When they click it and tap <strong>Start</strong> in Telegram, they'll be automatically paired.</p>
+            <div class="pairing-link-box">
+              <input class="clay-input" type="text" id="pairingLinkInput" readonly>
+              <button class="btn-clay btn-copy" id="btnCopyLink">📋 Copy</button>
+            </div>
+            <div class="modal-actions">
+              <button class="btn-clay btn-save" id="btnClosePairing">Done</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- INTEGRATIONS VIEW -->
+      <section class="view" id="viewIntegrations">
+        <div class="view-header">
+          <h2>Integrations</h2>
+          <p class="view-subtitle">Telegram bot status and system integrations</p>
+        </div>
+
+        <div class="integrations-grid">
+          <div class="clay-card integration-card">
+            <div class="integration-header">
+              <span class="integration-icon">🤖</span>
+              <h3>Telegram Bot</h3>
+              <span class="integration-badge" id="tgBotBadge">ONLINE</span>
+            </div>
+            <div class="integration-detail">
+              <div class="detail-row"><span>Bot Username</span><span id="tgBotUsername">@my_hunt_group_bot</span></div>
+              <div class="detail-row"><span>Mode</span><span id="tgBotMode">LIVE</span></div>
+              <div class="detail-row"><span>Verified Contacts</span><span id="tgVerifiedCount">0</span></div>
+              <div class="detail-row"><span>Active Alert</span><span id="tgActiveAlert">None</span></div>
+            </div>
+          </div>
+
+          <div class="clay-card integration-card">
+            <div class="integration-header">
+              <span class="integration-icon">🔊</span>
+              <h3>Audio Engine</h3>
+              <span class="integration-badge" id="audioEngineBadge">ACTIVE</span>
+            </div>
+            <div class="integration-detail">
+              <div class="detail-row"><span>Microphone</span><span id="intMicDevice">Active</span></div>
+              <div class="detail-row"><span>Speaker Loopback</span><span id="intSpkDevice">Active</span></div>
+              <div class="detail-row"><span>Sample Rate</span><span>16,000 Hz</span></div>
+              <div class="detail-row"><span>YAMNet Model</span><span>521 AudioSet Classes</span></div>
+            </div>
+          </div>
+
+          <div class="clay-card integration-card">
+            <div class="integration-header">
+              <span class="integration-icon">🛡️</span>
+              <h3>Acoustic Firewall</h3>
+              <span class="integration-badge" id="firewallBadge">ARMED</span>
+            </div>
+            <div class="integration-detail">
+              <div class="detail-row"><span>Media Suppressed</span><span id="intSuppressed">0</span></div>
+              <div class="detail-row"><span>Threats Confirmed</span><span id="intConfirmed">0</span></div>
+              <div class="detail-row"><span>Method</span><span>Cross-Correlation + AI</span></div>
+            </div>
+          </div>
+
+          <!-- Recent Alerts Card -->
+          <div class="clay-card integration-card wide">
+            <div class="integration-header">
+              <span class="integration-icon">📜</span>
+              <h3>Recent Alert History</h3>
+            </div>
+            <div class="alert-history" id="alertHistory">
+              <div class="empty-state-sm">No alerts dispatched yet.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

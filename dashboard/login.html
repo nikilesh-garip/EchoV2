@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Echo — Sign In</title>
+  <meta name="description" content="Echo acoustic hazard detection platform — secure login and registration.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --clay-bg: #e8e2d8;
+      --clay-surface: #ddd7cd;
+      --clay-light: rgba(255,255,255,0.7);
+      --clay-dark: rgba(160,150,135,0.55);
+      --clay-inset-light: rgba(255,255,255,0.35);
+      --clay-inset-dark: rgba(140,130,115,0.4);
+      --accent: #ff6b6b;
+      --accent-teal: #4ecdc4;
+      --text-primary: #2c3e50;
+      --text-muted: #7f8c8d;
+      --radius: 24px;
+      --font: 'Outfit', sans-serif;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--clay-bg);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Ambient soft blobs */
+    .blob {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(100px);
+      opacity: 0.4;
+      z-index: 0;
+      animation: blobFloat 12s ease-in-out infinite alternate;
+    }
+    .blob-1 { width: 500px; height: 500px; background: #ff6b6b; top: -150px; left: -100px; }
+    .blob-2 { width: 400px; height: 400px; background: #4ecdc4; bottom: -100px; right: -80px; animation-delay: -4s; }
+    .blob-3 { width: 300px; height: 300px; background: #ffe66d; top: 50%; left: 60%; animation-delay: -8s; }
+
+    @keyframes blobFloat {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(30px, -20px) scale(1.1); }
+    }
+
+    .auth-container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 440px;
+      padding: 0 20px;
+    }
+
+    /* Echo Logo */
+    .echo-brand {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .echo-logo {
+      font-size: 3.5rem;
+      font-weight: 900;
+      letter-spacing: -2px;
+      color: var(--text-primary);
+      text-shadow: 2px 2px 0 var(--clay-light), -1px -1px 0 rgba(0,0,0,0.05);
+      position: relative;
+      display: inline-block;
+    }
+    .echo-logo .dot {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      background: var(--accent);
+      border-radius: 50%;
+      margin-left: 2px;
+      vertical-align: super;
+      box-shadow:
+        inset 2px 2px 4px rgba(255,255,255,0.5),
+        inset -2px -2px 4px rgba(200,60,60,0.3),
+        3px 3px 8px rgba(255,107,107,0.3);
+      animation: dotPulse 2s ease-in-out infinite;
+    }
+    @keyframes dotPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.3); }
+    }
+    .echo-tagline {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-top: 4px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    /* Clay Card */
+    .auth-card {
+      background: var(--clay-surface);
+      border-radius: var(--radius);
+      padding: 40px 36px;
+      box-shadow:
+        inset 6px 6px 12px var(--clay-light),
+        inset -6px -6px 12px var(--clay-dark),
+        10px 10px 30px rgba(0,0,0,0.08),
+        -5px -5px 15px rgba(255,255,255,0.5);
+    }
+
+    /* Tab Switcher */
+    .tab-switcher {
+      display: flex;
+      gap: 4px;
+      background: rgba(0,0,0,0.04);
+      border-radius: 16px;
+      padding: 4px;
+      margin-bottom: 28px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 12px 0;
+      border: none;
+      background: transparent;
+      font-family: var(--font);
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-radius: 13px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .tab-btn.active {
+      background: var(--clay-surface);
+      color: var(--text-primary);
+      box-shadow:
+        inset 3px 3px 6px var(--clay-light),
+        inset -3px -3px 6px var(--clay-dark),
+        4px 4px 12px rgba(0,0,0,0.06);
+    }
+    .tab-btn:not(.active):hover { color: var(--text-primary); }
+
+    /* Form Fields */
+    .form-group {
+      margin-bottom: 18px;
+    }
+    .form-label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .form-input {
+      width: 100%;
+      padding: 14px 18px;
+      border: none;
+      outline: none;
+      border-radius: 16px;
+      font-family: var(--font);
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      background: var(--clay-surface);
+      box-shadow:
+        inset -3px -3px 6px var(--clay-light),
+        inset 3px 3px 6px var(--clay-dark);
+      transition: box-shadow 0.3s ease;
+    }
+    .form-input::placeholder { color: #b0a89d; }
+    .form-input:focus {
+      box-shadow:
+        inset -3px -3px 6px var(--clay-light),
+        inset 3px 3px 6px var(--clay-dark),
+        0 0 0 3px rgba(78, 205, 196, 0.25);
+    }
+
+    /* Submit Button */
+    .btn-submit {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 18px;
+      font-family: var(--font);
+      font-size: 1rem;
+      font-weight: 700;
+      color: white;
+      cursor: pointer;
+      margin-top: 8px;
+      background: linear-gradient(135deg, var(--accent) 0%, #ee5a5a 100%);
+      box-shadow:
+        inset 3px 3px 6px rgba(255,255,255,0.25),
+        inset -3px -3px 6px rgba(180,40,40,0.2),
+        6px 6px 18px rgba(255,107,107,0.3),
+        -3px -3px 10px rgba(255,255,255,0.4);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      letter-spacing: 0.5px;
+    }
+    .btn-submit:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        inset 3px 3px 6px rgba(255,255,255,0.3),
+        inset -3px -3px 6px rgba(180,40,40,0.25),
+        8px 8px 24px rgba(255,107,107,0.4),
+        -4px -4px 12px rgba(255,255,255,0.5);
+    }
+    .btn-submit:active {
+      transform: translateY(1px);
+      box-shadow:
+        inset -3px -3px 6px rgba(255,255,255,0.2),
+        inset 3px 3px 6px rgba(180,40,40,0.3),
+        2px 2px 8px rgba(255,107,107,0.2);
+    }
+
+    /* Error/Success Messages */
+    .auth-message {
+      padding: 12px 16px;
+      border-radius: 14px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: none;
+      animation: slideDown 0.3s ease;
+    }
+    .auth-message.error {
+      display: block;
+      background: rgba(255,107,107,0.12);
+      color: #c0392b;
+      box-shadow: inset 2px 2px 4px rgba(255,255,255,0.2), inset -2px -2px 4px rgba(200,50,50,0.1);
+    }
+    .auth-message.success {
+      display: block;
+      background: rgba(78,205,196,0.12);
+      color: #16a085;
+      box-shadow: inset 2px 2px 4px rgba(255,255,255,0.2), inset -2px -2px 4px rgba(0,150,130,0.1);
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Form visibility toggle */
+    .form-view { display: none; }
+    .form-view.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  </style>
+</head>
+<body>
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+
+  <div class="auth-container">
+    <div class="echo-brand">
+      <div class="echo-logo">echo<span class="dot"></span></div>
+      <div class="echo-tagline">Acoustic Intelligence</div>
+    </div>
+
+    <div class="auth-card">
+      <div class="tab-switcher">
+        <button class="tab-btn active" id="tabLogin" onclick="switchTab('login')">Sign In</button>
+        <button class="tab-btn" id="tabRegister" onclick="switchTab('register')">Create Account</button>
+      </div>
+
+      <div id="authMessage" class="auth-message"></div>
+
+      <!-- Login Form -->
+      <div class="form-view active" id="loginView">
+        <form id="loginForm" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label class="form-label" for="loginUsername">Username</label>
+            <input class="form-input" type="text" id="loginUsername" placeholder="Enter your username" required autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="loginPassword">Password</label>
+            <input class="form-input" type="password" id="loginPassword" placeholder="Enter your password" required autocomplete="current-password">
+          </div>
+          <button type="submit" class="btn-submit" id="loginSubmitBtn">Sign In</button>
+        </form>
+      </div>
+
+      <!-- Register Form -->
+      <div class="form-view" id="registerView">
+        <form id="registerForm" onsubmit="handleRegister(event)">
+          <div class="form-group">
+            <label class="form-label" for="regUsername">Username</label>
+            <input class="form-input" type="text" id="regUsername" placeholder="Choose a username" required minlength="3" autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="regEmail">Email</label>
+            <input class="form-input" type="email" id="regEmail" placeholder="your@email.com" required autocomplete="email">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="regPassword">Password</label>
+            <input class="form-input" type="password" id="regPassword" placeholder="Min. 6 characters" required minlength="6" autocomplete="new-password">
+          </div>
+          <button type="submit" class="btn-submit" id="registerSubmitBtn">Create Account</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Redirect to dashboard if already authenticated
+    if (localStorage.getItem('echo_token')) {
+      window.location.href = '/app';
+    }
+
+    function switchTab(tab) {
+      const msgEl = document.getElementById('authMessage');
+      msgEl.className = 'auth-message';
+      msgEl.style.display = 'none';
+
+      document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+      document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
+      document.getElementById('loginView').classList.toggle('active', tab === 'login');
+      document.getElementById('registerView').classList.toggle('active', tab === 'register');
+    }
+
+    function showMessage(text, type) {
+      const el = document.getElementById('authMessage');
+      el.textContent = text;
+      el.className = `auth-message ${type}`;
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const btn = document.getElementById('loginSubmitBtn');
+      btn.textContent = 'Signing in...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('loginUsername').value.trim(),
+            password: document.getElementById('loginPassword').value,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showMessage(data.detail || 'Login failed', 'error');
+          btn.textContent = 'Sign In';
+          btn.disabled = false;
+          return;
+        }
+        localStorage.setItem('echo_token', data.token);
+        localStorage.setItem('echo_user', JSON.stringify(data.user));
+        showMessage('Welcome back! Redirecting...', 'success');
+        setTimeout(() => { window.location.href = '/app'; }, 600);
+      } catch (err) {
+        showMessage('Network error. Please try again.', 'error');
+        btn.textContent = 'Sign In';
+        btn.disabled = false;
+      }
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      const btn = document.getElementById('registerSubmitBtn');
+      btn.textContent = 'Creating account...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('regUsername').value.trim(),
+            email: document.getElementById('regEmail').value.trim(),
+            password: document.getElementById('regPassword').value,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showMessage(data.detail || 'Registration failed', 'error');
+          btn.textContent = 'Create Account';
+          btn.disabled = false;
+          return;
+        }
+        localStorage.setItem('echo_token', data.token);
+        localStorage.setItem('echo_user', JSON.stringify(data.user));
+        showMessage('Account created! Redirecting...', 'success');
+        setTimeout(() => { window.location.href = '/app'; }, 600);
+      } catch (err) {
+        showMessage('Network error. Please try again.', 'error');
+        btn.textContent = 'Create Account';
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
