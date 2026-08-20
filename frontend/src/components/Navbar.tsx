@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Radio, Activity, ExternalLink, Menu, X, Users, Info, Layers } from 'lucide-react';
+import { Shield, Radio, Activity, ExternalLink, Menu, X, Users, Info, Layers, Mic, MicOff } from 'lucide-react';
 import MagneticButton from './MagneticButton';
+import { useEchoTelemetry } from '../hooks/useEchoTelemetry';
 
 const NAV_LINKS = [
   { path: '/', label: 'Overview', icon: <Radio className="w-4 h-4" /> },
@@ -15,6 +16,7 @@ export const Navbar: React.FC = () => {
   const location = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { isConnected, isPaused, toggleMic } = useEchoTelemetry();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -77,13 +79,39 @@ export const Navbar: React.FC = () => {
           })}
         </div>
 
-        {/* Action Buttons: Live Dashboard Bridge */}
+        {/* Action Buttons: Live Dashboard Bridge & Mic Toggle */}
         <div className="hidden md:flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-mono text-emerald-400">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            <Activity className="w-3.5 h-3.5" />
-            <span>MIC LIVE</span>
-          </div>
+          <button
+            onClick={toggleMic}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-[11px] font-mono transition-all cursor-pointer ${
+              isConnected
+                ? isPaused
+                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20'
+                  : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
+                : 'bg-slate-500/10 border-slate-500/20 text-slate-400'
+            }`}
+            title="Click to toggle microphone state"
+          >
+            {isConnected ? (
+              isPaused ? (
+                <>
+                  <MicOff className="w-3.5 h-3.5 text-amber-400" />
+                  <span>MIC PAUSED</span>
+                </>
+              ) : (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                  <Mic className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>DSP LIVE</span>
+                </>
+              )
+            ) : (
+              <>
+                <Activity className="w-3.5 h-3.5 text-slate-400" />
+                <span>STANDBY</span>
+              </>
+            )}
+          </button>
 
           <a href="http://localhost:8000" target="_blank" rel="noopener noreferrer">
             <MagneticButton variant="primary" className="!px-4 !py-2 !text-xs">
@@ -131,6 +159,14 @@ export const Navbar: React.FC = () => {
               })}
               
               <div className="pt-4 mt-2 border-t border-white/10 flex flex-col gap-3">
+                <button
+                  onClick={toggleMic}
+                  className="w-full py-2.5 rounded-2xl bg-white/5 border border-white/10 text-xs font-mono text-white flex items-center justify-center gap-2"
+                >
+                  {isPaused ? <MicOff className="w-4 h-4 text-amber-400" /> : <Mic className="w-4 h-4 text-emerald-400" />}
+                  <span>{isPaused ? 'Resume Mic Capture' : 'Pause Mic Capture'}</span>
+                </button>
+
                 <a href="http://localhost:8000" target="_blank" rel="noopener noreferrer" onClick={() => setMobileMenuOpen(false)}>
                   <button className="w-full py-3 rounded-2xl bg-emerald-400 text-black font-bold text-sm flex items-center justify-center gap-2">
                     <span>Open Mission Control (8000)</span>

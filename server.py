@@ -28,7 +28,17 @@ logger = logging.getLogger("EchoServer")
 
 # ── Initialize FastAPI App ──────────────────────────────────────────────────────
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI(title="Echo — Acoustic Hazard Detection Platform", version="3.0.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # ── WebSocket Connection Manager ────────────────────────────────────────────────
